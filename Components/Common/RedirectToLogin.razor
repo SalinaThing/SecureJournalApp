@@ -1,0 +1,12 @@
+﻿@inject SecureJournalApp.Services.AuthService AuthService
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!AuthService.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login", true);
+        }
+    }
+}

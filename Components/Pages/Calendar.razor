@@ -1,0 +1,814 @@
+﻿@page "/calendar"
+@using SecureJournalApp.Models
+@inject SecureJournalApp.Services.JournalService JournalService
+@inject SecureJournalApp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<RedirectToLogin />
+
+<div class="calendar-container">
+    <!-- Calendar Header -->
+    <div class="calendar-header">
+        <h2 class="page-title">
+            <i class="fas fa-calendar-alt me-2"></i>Journal Calendar
+        </h2>
+        <div class="calendar-controls">
+            <button class="btn btn-icon" @onclick="PreviousMonth">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="current-month">
+                <span class="month-year">@CurrentDate.ToString("MMMM yyyy")</span>
+                <button class="btn btn-today" @onclick="GoToToday">
+                    <i class="fas fa-calendar-day"></i> Today
+                </button>
+            </div>
+            <button class="btn btn-icon" @onclick="NextMonth">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <div class="view-toggle">
+            <button class="btn @(ViewMode == CalendarView.Month ? "btn-primary" : "btn-outline")" 
+                    @onclick="() => SetViewMode(CalendarView.Month)">
+                Month
+            </button>
+            <button class="btn @(ViewMode == CalendarView.Week ? "btn-primary" : "btn-outline")" 
+                    @onclick="() => SetViewMode(CalendarView.Week)">
+                Week
+            </button>
+        </div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-grid @ViewMode.ToString().ToLower()">
+        <!-- Day Headers -->
+        <div class="calendar-day-header">
+            @foreach (var day in DaysOfWeek)
+            {
+                <div class="day-header">@day</div>
+            }
+        </div>
+
+        <!-- Calendar Days -->
+        @for (int week = 0; week < CalendarWeeks; week++)
+        {
+            <div class="calendar-week">
+                @for (int day = 0; day < 7; day++)
+                {
+                    var currentDay = CalendarDays[week * 7 + day];
+                    var journalEntry = GetJournalForDate(currentDay);
+                    var moodEmoji = GetMoodEmoji(journalEntry?.PrimaryMood);
+                    
+                    <div class="calendar-day @GetDayClass(currentDay)">
+                        <div class="day-header">
+                            <span class="day-number">@currentDay.Day</span>
+                            @if (currentDay.Date == DateTime.Today)
+                            {
+                                <span class="today-indicator"></span>
+                            }
+                        </div>
+                        
+                        @* <div class="day-content">
+                            @if (journalEntry != null)
+                            {
+                                <div class="entry-preview" @onclick="() => ViewEntry(journalEntry.Id.ToString())">
+                                    <div class="mood-display">
+                                        <span class="mood-emoji">@moodEmoji</span>
+                                        @if (journalEntry.SecondaryMoods?.Any() == true)
+                                        {
+                                            <span class="secondary-mood">+@journalEntry.SecondaryMoods.Count</span>
+                                        }
+                                    </div>
+                                    <div class="entry-title">@journalEntry.Title</div>
+                                    @if (journalEntry.Tags?.Any() == true)
+                                    {
+                                        <div class="entry-tags">
+                                            @foreach (var tag in journalEntry.Tags.Take(2))
+                                            {
+                                                <span class="tag-badge">@tag</span>
+                                            }
+                                            @if (journalEntry.Tags.Count > 2)
+                                            {
+                                                <span class="more-tags">+@(journalEntry.Tags.Count - 2)</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else if (currentDay <= DateTime.Today && currentDay >= new DateTime(CurrentDate.Year, CurrentDate.Month, 1))
+                            {
+                                <button class="add-entry-btn" @onclick="() => CreateNewEntry(currentDay)">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Add Entry</span>
+                                </button>
+                            }
+                        </div> *@
+                        
+                        <!-- Streak indicator -->
+                        @if (IsStreakDay(currentDay))
+                        {
+                            <div class="streak-dot"></div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Stats Panel -->
+    <div class="stats-panel">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">@CurrentStreak</div>
+                <div class="stat-label">Current Streak</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">@LongestStreak</div>
+                <div class="stat-label">Longest Streak</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">@EntriesThisMonth</div>
+                <div class="stat-label">This Month</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-heart"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">@PositivePercentage%</div>
+                <div class="stat-label">Positive</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Filter Panel -->
+    <div class="filter-panel">
+        <h4>Filter by Mood</h4>
+        <div class="mood-filters">
+            @foreach (var mood in AllMoods)
+            {
+                <button class="mood-filter @(SelectedMoods.Contains(mood) ? "active" : "")" 
+                        @onclick="() => ToggleMoodFilter(mood)">
+                    <span class="mood-emoji">@GetMoodEmoji(mood)</span>
+                    <span class="mood-name">@mood</span>
+                </button>
+            }
+        </div>
+        
+        <h4>Filter by Tags</h4>
+        <div class="tag-filters">
+            @foreach (var tag in PopularTags)
+            {
+                <button class="tag-filter @(SelectedTags.Contains(tag) ? "active" : "")" 
+                        @onclick="() => ToggleTagFilter(tag)">
+                    <i class="fas fa-tag"></i>
+                    <span>@tag</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private DateTime CurrentDate = DateTime.Today;
+    private List<DateTime> CalendarDays = new();
+    private CalendarView ViewMode = CalendarView.Month;
+    private List<string> SelectedMoods = new();
+    private List<string> SelectedTags = new();
+    
+    private readonly string[] DaysOfWeek = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    private readonly List<string> AllMoods = new()
+    {
+        "Happy", "Excited", "Relaxed", "Grateful", "Confident",
+        "Calm", "Thoughtful", "Curious", "Nostalgic", "Bored",
+        "Sad", "Angry", "Stressed", "Lonely", "Anxious"
+    };
+    
+    private int CalendarWeeks => ViewMode == CalendarView.Month ? 6 : 1;
+    
+    // Stats
+    private int CurrentStreak = 14;
+    private int LongestStreak = 30;
+    private int EntriesThisMonth = 0;
+    private int PositivePercentage = 78;
+    private List<string> PopularTags = new() { "Work", "Health", "Travel", "Fitness", "Family", "Personal Growth" };
+    
+    protected override void OnInitialized()
+    {
+        GenerateCalendar();
+        CalculateStats();
+    }
+    
+    private void GenerateCalendar()
+    {
+        CalendarDays.Clear();
+        
+        if (ViewMode == CalendarView.Month)
+        {
+            var firstDayOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+            var startDate = firstDayOfMonth.AddDays(-(int)firstDayOfMonth.DayOfWeek);
+            
+            for (int i = 0; i < 42; i++) // 6 weeks
+            {
+                CalendarDays.Add(startDate.AddDays(i));
+            }
+        }
+        else // Week view
+        {
+            var startOfWeek = CurrentDate.AddDays(-(int)CurrentDate.DayOfWeek);
+            
+            for (int i = 0; i < 7; i++)
+            {
+                CalendarDays.Add(startOfWeek.AddDays(i));
+            }
+        }
+        
+        CalculateStats();
+    }
+    
+    private void CalculateStats()
+    {
+        var entries = JournalService.GetAll();
+        var thisMonthEntries = entries.Where(e => e.EntryDate.Month == CurrentDate.Month && e.EntryDate.Year == CurrentDate.Year);
+        EntriesThisMonth = thisMonthEntries.Count();
+        
+        // Calculate positive percentage
+        var positiveEntries = entries.Count(e => e.PrimaryMood != null && 
+            (e.PrimaryMood == "Happy" || e.PrimaryMood == "Excited" || e.PrimaryMood == "Relaxed" || 
+             e.PrimaryMood == "Grateful" || e.PrimaryMood == "Confident"));
+        PositivePercentage = entries.Count > 0 ? (positiveEntries * 100 / entries.Count) : 0;
+    }
+    
+    private JournalEntry? GetJournalForDate(DateTime date)
+    {
+        return JournalService.GetAll()
+            .FirstOrDefault(e => e.EntryDate.Date == date.Date);
+    }
+    
+    private string GetMoodEmoji(string? mood)
+    {
+        return mood switch
+        {
+            "Happy" => "😊",
+            "Excited" => "🎉",
+            "Relaxed" => "😌",
+            "Grateful" => "🙏",
+            "Confident" => "💪",
+            "Calm" => "🧘",
+            "Thoughtful" => "🤔",
+            "Curious" => "🔍",
+            "Nostalgic" => "📸",
+            "Bored" => "😒",
+            "Sad" => "😢",
+            "Angry" => "😠",
+            "Stressed" => "😫",
+            "Lonely" => "😔",
+            "Anxious" => "😰",
+            _ => "📝"
+        };
+    }
+    
+    private string GetDayClass(DateTime date)
+    {
+        var classes = new List<string>();
+        
+        if (date.Date == DateTime.Today)
+            classes.Add("today");
+        if (date.Month != CurrentDate.Month)
+            classes.Add("other-month");
+        if (GetJournalForDate(date) != null)
+            classes.Add("has-entry");
+        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
+            classes.Add("weekend");
+        
+        return string.Join(" ", classes);
+    }
+    
+    private bool IsStreakDay(DateTime date)
+    {
+        // Check if this day is part of current streak
+        // Simplified logic - in real app, calculate from JournalService
+        var entry = GetJournalForDate(date);
+        return entry != null && entry.EntryDate.Date >= DateTime.Today.AddDays(-CurrentStreak);
+    }
+    
+    private void PreviousMonth()
+    {
+        CurrentDate = CurrentDate.AddMonths(-1);
+        GenerateCalendar();
+    }
+    
+    private void NextMonth()
+    {
+        CurrentDate = CurrentDate.AddMonths(1);
+        GenerateCalendar();
+    }
+    
+    private void GoToToday()
+    {
+        CurrentDate = DateTime.Today;
+        GenerateCalendar();
+    }
+    
+    private void SetViewMode(CalendarView mode)
+    {
+        ViewMode = mode;
+        GenerateCalendar();
+    }
+    
+    private void ViewEntry(Guid entryId)
+    {
+        Navigation.NavigateTo($"/entry/{entryId}");
+    }
+    
+    private void CreateNewEntry(DateTime date)
+    {
+        Navigation.NavigateTo($"/entry/edit?date={date:yyyy-MM-dd}");
+    }
+    
+    private void ToggleMoodFilter(string mood)
+    {
+        if (SelectedMoods.Contains(mood))
+            SelectedMoods.Remove(mood);
+        else
+            SelectedMoods.Add(mood);
+        
+        // Apply filter logic here
+    }
+    
+    private void ToggleTagFilter(string tag)
+    {
+        if (SelectedTags.Contains(tag))
+            SelectedTags.Remove(tag);
+        else
+            SelectedTags.Add(tag);
+        
+        // Apply filter logic here
+    }
+    
+    private enum CalendarView { Month, Week }
+}
+
+<style>
+    .calendar-container {
+        padding: 20px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .calendar-header {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    
+    .page-title {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.8rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .calendar-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .btn-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .btn-icon:hover {
+        background: #e9ecef;
+    }
+    
+    .btn-today {
+        background: #3498db;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-today:hover {
+        background: #2980b9;
+    }
+    
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #dee2e6;
+        color: #6c757d;
+    }
+    
+    .current-month {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .month-year {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #2c3e50;
+        min-width: 180px;
+        text-align: center;
+    }
+    
+    .view-toggle {
+        display: flex;
+        gap: 10px;
+    }
+    
+    /* Calendar Grid */
+    .calendar-grid {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .calendar-day-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        margin-bottom: 10px;
+    }
+    
+    .day-header {
+        text-align: center;
+        padding: 10px;
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .calendar-week {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        min-height: 120px;
+    }
+    
+    .calendar-day {
+        border: 1px solid #e9ecef;
+        padding: 8px;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    
+    .calendar-day:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1;
+    }
+    
+    .calendar-day.today {
+        background: rgba(52, 152, 219, 0.1);
+        border-color: #3498db;
+    }
+    
+    .calendar-day.other-month {
+        opacity: 0.4;
+    }
+    
+    .calendar-day.has-entry {
+        background: rgba(46, 204, 113, 0.05);
+    }
+    
+    .calendar-day.weekend {
+        background: rgba(248, 249, 250, 0.5);
+    }
+    
+    .day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+    
+    .day-number {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+    
+    .today-indicator {
+        width: 6px;
+        height: 6px;
+        background: #e74c3c;
+        border-radius: 50%;
+    }
+    
+    .day-content {
+        min-height: 60px;
+    }
+    
+    .entry-preview {
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        background: white;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .entry-preview:hover {
+        background: #f8f9fa;
+        border-color: #3498db;
+    }
+    
+    .mood-display {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 4px;
+    }
+    
+    .mood-emoji {
+        font-size: 1.2rem;
+    }
+    
+    .secondary-mood {
+        font-size: 0.8rem;
+        background: #f8f9fa;
+        padding: 1px 4px;
+        border-radius: 4px;
+        color: #6c757d;
+    }
+    
+    .entry-title {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #2c3e50;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 4px;
+    }
+    
+    .entry-tags {
+        display: flex;
+        gap: 2px;
+        flex-wrap: wrap;
+    }
+    
+    .tag-badge {
+        font-size: 0.7rem;
+        padding: 1px 4px;
+        background: #e9ecef;
+        border-radius: 3px;
+        color: #6c757d;
+    }
+    
+    .more-tags {
+        font-size: 0.7rem;
+        color: #adb5bd;
+    }
+    
+    .add-entry-btn {
+        width: 100%;
+        height: 60px;
+        background: transparent;
+        border: 2px dashed #dee2e6;
+        border-radius: 6px;
+        color: #adb5bd;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        transition: all 0.3s ease;
+    }
+    
+    .add-entry-btn:hover {
+        border-color: #3498db;
+        color: #3498db;
+        background: rgba(52, 152, 219, 0.05);
+    }
+    
+    .streak-dot {
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        width: 6px;
+        height: 6px;
+        background: #f39c12;
+        border-radius: 50%;
+    }
+    
+    /* Stats Panel */
+    .stats-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(45deg, #3498db, #2ecc71);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .stat-content {
+        flex: 1;
+    }
+    
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    /* Filter Panel */
+    .filter-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-panel h4 {
+        margin: 0 0 15px 0;
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+    
+    .mood-filters, .tag-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .mood-filter, .tag-filter {
+        padding: 8px 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 20px;
+        background: white;
+        color: #6c757d;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+    
+    .mood-filter:hover, .tag-filter:hover {
+        border-color: #3498db;
+        color: #3498db;
+    }
+    
+    .mood-filter.active, .tag-filter.active {
+        background: #3498db;
+        border-color: #3498db;
+        color: white;
+    }
+    
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .calendar-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .calendar-controls {
+            justify-content: center;
+        }
+        
+        .calendar-day-header {
+            display: none;
+        }
+        
+        .calendar-week {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .calendar-day {
+            min-height: auto;
+            margin-bottom: 10px;
+        }
+        
+        .stats-panel {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    /* Dark Mode Support */
+    .dark-mode .calendar-container {
+        background: #1a252f;
+    }
+    
+    .dark-mode .calendar-header,
+    .dark-mode .calendar-grid,
+    .dark-mode .stat-card,
+    .dark-mode .filter-panel {
+        background: #2c3e50;
+        color: white;
+    }
+    
+    .dark-mode .page-title {
+        color: white;
+    }
+    
+    .dark-mode .btn-icon {
+        background: #34495e;
+        color: #bdc3c7;
+    }
+    
+    .dark-mode .calendar-day {
+        border-color: #34495e;
+        background: #34495e;
+    }
+    
+    .dark-mode .entry-preview {
+        background: #2c3e50;
+        border-color: #34495e;
+        color: white;
+    }
+    
+    .dark-mode .mood-filter, .dark-mode .tag-filter {
+        background: #34495e;
+        border-color: #4a6278;
+        color: #bdc3c7;
+    }
+</style>

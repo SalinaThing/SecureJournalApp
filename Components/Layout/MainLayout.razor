@@ -1,0 +1,38 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page-container">
+    <NavMenu />
+
+    <main class="main-content">
+        @Body
+    </main>
+</div>
+
+<style>
+    .page-container {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .main-content {
+        flex: 1;
+        margin-left: 280px; /* Match sidebar width */
+        padding: 20px;
+        overflow-y: auto;
+        height: 100vh;
+    }
+
+    /* When sidebar is collapsed */
+    .app-sidebar.collapsed ~ .main-content {
+        margin-left: 80px;
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 768px) {
+        .main-content {
+            margin-left: 0;
+            margin-bottom: 60px; /* Space for mobile navbar */
+            height: calc(100vh - 60px);
+        }
+    }
+</style>

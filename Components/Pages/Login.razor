@@ -1,0 +1,361 @@
+﻿@page "/login"
+@inject SecureJournalApp.Services.AuthService AuthService
+@inject NavigationManager NavManager
+
+<div class="login-page">
+    <div class="login-card">
+
+        <div class="logo-section">
+            <div class="lock-icon">🔒</div>
+            <h1 class="app-title">SecureJournal</h1>
+            <p class="app-subtitle">Enter your PIN to access your secure journal</p>
+        </div>
+
+        <div class="form-section">
+            <div class="input-group">
+                <label for="pin-input">PIN</label>
+                <input id="pin-input"
+                       type="password"
+                       class="pin-input"
+                       placeholder="Enter 4–6 digit PIN"
+                       maxlength="6"
+                       @bind="Pin"
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">
+                    <span class="error-icon">⚠️</span>
+                    <span>@ErrorMessage</span>
+                </div>
+            }
+
+            <button class="login-btn"
+                    @onclick="HandleLogin"
+                    disabled="@(string.IsNullOrWhiteSpace(Pin) || isLoading)">
+                @if (isLoading)
+                {
+                    <span class="spinner"></span>
+                    <span>Authenticating...</span>
+                }
+                else
+                {
+                    <span>Login →</span>
+                }
+            </button>
+        </div>
+
+        <div class="footer-section">
+            <p class="security-info">🔐 Your data is encrypted and secure</p>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    private string Pin = string.Empty;
+    private string ErrorMessage = string.Empty;
+    private bool isLoading;
+
+    private async Task HandleLogin()
+    {
+        ErrorMessage = string.Empty;
+
+        if (Pin.Length < 4)
+        {
+            ErrorMessage = "PIN must be at least 4 digits";
+            return;
+        }
+
+        isLoading = true;
+        await Task.Delay(300); // Simulate auth
+
+        if (AuthService.Login(Pin))
+        {
+            NavManager.NavigateTo("/dashboard", true);
+        }
+        else
+        {
+            ErrorMessage = "Invalid PIN. Please try again.";
+            Pin = string.Empty;
+        }
+
+        isLoading = false;
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isLoading)
+        {
+            _ = HandleLogin();
+        }
+    }
+}
+
+<style>
+    /* Full Page Layout */
+    .login-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Main Card */
+    .login-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 100%;
+        max-width: 420px;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+        }
+
+    /* Logo Section */
+    .logo-section {
+        padding: 40px 40px 30px;
+        text-align: center;
+        background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+        color: white;
+    }
+
+    .lock-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+    }
+
+    .app-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        background: linear-gradient(45deg, #3498db, #2ecc71);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .app-subtitle {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0;
+        font-weight: 400;
+    }
+
+    /* Form Section */
+    .form-section {
+        padding: 40px;
+    }
+
+    .input-group {
+        margin-bottom: 30px;
+    }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+    .pin-input {
+        width: 100%;
+        padding: 16px 20px;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: 10px;
+        text-align: center;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        outline: none;
+        font-family: 'Courier New', monospace;
+    }
+
+        .pin-input:focus {
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .pin-input::placeholder {
+            font-size: 16px;
+            letter-spacing: normal;
+            color: #95a5a6;
+            font-weight: normal;
+        }
+
+    /* Error Message */
+    .error-message {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px;
+        background: #ffeaea;
+        border-left: 4px solid #e74c3c;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        animation: slideIn 0.3s ease;
+    }
+
+    .error-icon {
+        color: #e74c3c;
+        font-size: 20px;
+    }
+
+    .error-message span:last-child {
+        color: #c0392b;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    /* Login Button */
+    .login-btn {
+        width: 100%;
+        padding: 18px;
+        background: linear-gradient(45deg, #3498db, #2ecc71);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .login-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .login-btn span:last-child {
+            transition: opacity 0.3s ease;
+        }
+
+    /* Spinner */
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    /* Footer Section */
+    .footer-section {
+        padding: 25px 40px;
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
+    }
+
+    .security-info {
+        color: #7f8c8d;
+        font-size: 14px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+        .security-info::before {
+            content: "🔐";
+        }
+
+
+    /* Responsive Design */
+    @@media (max-width: 480px) {
+        .login-card {
+            margin: 10px;
+        }
+
+        .logo-section {
+            padding: 30px 20px;
+        }
+
+        .app-title {
+            font-size: 28px;
+        }
+
+        .form-section {
+            padding: 30px 20px;
+        }
+
+        .pin-input {
+            font-size: 20px;
+            padding: 14px;
+        }
+
+        .login-btn {
+            padding: 16px;
+            font-size: 16px;
+        }
+
+        .footer-section {
+            padding: 20px;
+        }
+    }
+
+    /* Dark Mode Support */
+    @@media (prefers-color-scheme: dark) {
+        .login-card {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .input-group label {
+            color: #ecf0f1;
+        }
+
+        .pin-input {
+            background: #34495e;
+            border-color: #4a6278;
+            color: white;
+        }
+
+            .pin-input:focus {
+                border-color: #3498db;
+                background: #3d566e;
+            }
+
+        .footer-section {
+            background: #1a252f;
+            border-color: #34495e;
+        }
+
+        .security-info {
+            color: #bdc3c7;
+        }
+    }
+</style>
