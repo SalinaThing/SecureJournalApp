@@ -30,6 +30,10 @@ namespace SecureJournalApp
             builder.Services.AddSingleton<DbService>();            
             builder.Services.AddSingleton<JournalService>();
             builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddSingleton<CalendarService>();
+            builder.Services.AddSingleton<PinLockService>();
+            builder.Services.AddSingleton<ExportService>();
+
 
             return builder.Build();
         }
