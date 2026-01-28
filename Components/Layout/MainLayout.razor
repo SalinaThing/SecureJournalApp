@@ -1,38 +1,31 @@
-﻿@inherits LayoutComponentBase
+﻿@*layout UI for MainLayout *@
 
-<div class="page-container">
-    <NavMenu />
+@inherits LayoutComponentBase
 
-    <main class="main-content">
-        @Body
-    </main>
+<div class="app-shell @(isDark ? "theme-dark" : "")">
+    <Sidebar />
+
+    <div class="app-main">
+        <TopBar IsDark="@isDark" OnToggleTheme="ToggleTheme" />
+
+        <div class="app-content">
+            @Body
+        </div>
+    </div>
 </div>
 
-<style>
-    .page-container {
-        display: flex;
-        min-height: 100vh;
+<PinGate />
+
+@code {
+    private bool isDark;
+
+    protected override void OnInitialized()
+    {
+        isDark = Preferences.Get("theme.dark", false);
     }
 
-    .main-content {
-        flex: 1;
-        margin-left: 280px; /* Match sidebar width */
-        padding: 20px;
-        overflow-y: auto;
-        height: 100vh;
-    }
-
-    /* When sidebar is collapsed */
-    .app-sidebar.collapsed ~ .main-content {
-        margin-left: 80px;
-    }
-
-    /* Mobile responsive */
-    @@media (max-width: 768px) {
-        .main-content {
-            margin-left: 0;
-            margin-bottom: 60px; /* Space for mobile navbar */
-            height: calc(100vh - 60px);
-        }
-    }
-</style>
+    private void ToggleTheme()
+    {
+        isDark = !isDark;
+        Preferences.Set("theme.dark", isDark);
+    }}
