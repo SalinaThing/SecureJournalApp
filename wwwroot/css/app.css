@@ -1,35 +1,633 @@
-﻿.layout-root {
+/* Global Styling */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+    background: #f6f6f6;
+    color: #0b0b0c;
+}
+
+.muted {
+    color: #6b7280;
+}
+
+/* -----------------------------
+   APP LAYOUT
+------------------------------ */
+.app-shell {
+    min-height: 100vh;
     display: flex;
-    height: 100vh;
+    background: #f6f6f6;
 }
 
 .sidebar {
-    width: 260px;
-    background: linear-gradient(180deg, #1e1e2f, #2b2b44);
-    color: white;
-    padding: 20px;
-}
-
-.app-title {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 24px;
-}
-
-.nav-links {
+    width: 92px;
+    background: #0b0b0c;
+    color: #ffffff;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    padding: 18px 10px;
+    border-radius: 26px;
+    margin: 18px;
+    position: sticky;
+    top: 18px;
+    height: calc(100vh - 36px); /* full screen height minus top+bottom margin */
+    align-self: flex-start; /* important inside flex layout */
 }
 
-.nav-link {
-    color: white !important;
+.sidebar-links {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    padding-bottom: 10px;
+}
+
+.nav-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
     text-decoration: none;
-    padding: 12px;
-    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    transition: transform 0.12s ease, background 0.12s ease;
+}
+
+    .nav-icon:hover {
+        transform: translateY(-1px);
+        background: rgba(255,255,255,0.08);
+    }
+
+    .nav-icon.active {
+        background: #ffffff;
+        color: #0b0b0c;
+    }
+
+.app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 18px 18px 0;
+}
+
+/* -----------------------------
+   TOPBAR 
+------------------------------ */
+.topbar {
+    position: relative;
+    z-index: 50; /* makeing sure overlay image never covers the topbar */
+    margin-right: 10px;
+    margin-left: 30px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.topbar-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 660px;
+    padding: 10px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #f6f6f6;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    width: 100%;
+    background: transparent;
+    color: #0b0b0c;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #0b0b0c;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 500;
 }
 
-    .nav-link.active {
-        background-color: rgba(255, 255, 255, 0.2);
+/* -----------------------------
+   CONTENT
+------------------------------ */
+.app-content {
+    margin-top: 26px;
+    padding-right: 18px;
+    position: relative;
+    z-index: 1;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    /* small safety: keep big items (like calendar) inside card */
+    overflow: hidden;
+}
+
+/* -----------------------------
+   GREETING IMAGE OVERLAY 
+------------------------------ */
+.greeting {
+    position: relative; /* image is positioned relative to this card */
+    overflow: hidden; /* stops it from floating over other cards */
+    padding: 28px;
+    /* reserve space for image on the right */
+    padding-right: 380px;
+    min-height: 170px;
+    display: flex;
+    align-items: center;
+}
+
+/* The illustration container becomes a "floating card" */
+.greeting-illustration {
+    position: relative;
+    left: 448px;
+    /* keeping it inside the greeting card instead of escaping upwards */
+    pointer-events: none;
+    border-radius: 16px;
+}
+
+    .greeting-illustration img {
+        width: 400px;
+        height: auto;
+        opacity: 1;
+        display: block;
     }
+
+/* Greeting text sizes  */
+.greeting-title {
+    font-size: 60px;
+    font-weight: 800; /* looks like extrabold */
+    margin: 0;
+}
+
+.greeting-subtitle {
+    font-size: 20px;
+    margin-top: 6px;
+}
+
+/* -----------------------------
+   BUTTONS
+------------------------------ */
+.btn-dark, .btn-light, .btn-danger {
+    border: none;
+    cursor: pointer;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-weight: 600;
+}
+
+.btn-dark {
+    background: #0b0b0c;
+    color: #ffffff;
+}
+
+.btn-light {
+    background: #f6f6f6;
+    color: #0b0b0c;
+    border: 1px solid #e5e7eb;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+/* -----------------------------
+   HELPERS
+------------------------------ */
+.w-full {
+    width: 100%;
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ---------------------------------------------------------
+   DASHBOARD 
+---------------------------------------------------------- */
+.grid-dashboard {
+    margin-left: 30px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+    /* left section grows */
+    .grid-dashboard > :first-child {
+        flex: 1;
+        min-width: 0; /* prevents overflow when there are long inputs */
+    }
+
+    /* right section stays like a fixed sidebar column */
+    .grid-dashboard > :last-child {
+        width: 490px; /* you can tweak this: 380 / 420 / 460 */
+        flex-shrink: 0;
+    }
+
+/* 2 cards side by side */
+.grid-2 {
+    display: flex;
+    gap: 16px;
+}
+
+    .grid-2 > * {
+        flex: 1;
+        min-width: 0;
+    }
+
+/* 3 cards side by side */
+.grid-3 {
+    display: flex;
+    gap: 16px;
+}
+
+    .grid-3 > * {
+        flex: 1;
+        min-width: 0;
+    }
+
+/* stats row (3 cards) */
+.stats-row {
+    display: flex;
+    gap: 16px;
+}
+
+    .stats-row > * {
+        flex: 1;
+        min-width: 0;
+    }
+
+/* when screen is small, we stack the layout */
+@media (max-width: 1100px) {
+    .grid-dashboard {
+        flex-direction: column;
+    }
+
+        .grid-dashboard > :last-child {
+            width: 100%;
+        }
+
+    .grid-2, .grid-3, .stats-row {
+        flex-direction: column;
+    }
+
+    /* on small screens, remove the reserved right padding for the image */
+    .greeting {
+        padding-right: 24px;
+        min-height: auto;
+    }
+
+    /* and making the image block behave nicely */
+    .greeting-illustration {
+        position: static; /* puts it inside normal flow */
+        margin-top: 14px;
+        width: fit-content;
+    }
+}
+
+.stat {
+    padding: 18px;
+}
+
+.stat-number {
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.input {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #f6f6f6;
+    color: #0b0b0c;
+    outline: none;
+}
+
+.textarea {
+    min-height: 160px;
+    resize: vertical;
+}
+
+.timestamps {
+    display: flex;
+    gap: 18px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f6f6f6;
+    border: 1px solid #e5e7eb;
+}
+
+.empty-box {
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px dashed #e5e7eb;
+    background: #f6f6f6;
+    color: #6b7280;
+}
+
+.preview-box {
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #f6f6f6;
+    min-height: 160px;
+}
+
+.preview {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #f6f6f6;
+    cursor: pointer;
+}
+
+    .chip .material-icons {
+        font-size: 16px;
+    }
+
+.secondary-box {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #f6f6f6;
+    padding: 12px;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.secondary-title {
+    font-size: 12px;
+    font-weight: 700;
+    margin: 8px 0;
+}
+
+.secondary-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chip-check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+/* -----------------------------
+   CALENDAR  
+------------------------------ */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 46px);
+    gap: 10px;
+    justify-content: center; /* keeps the grid centered inside the card */
+}
+
+.calendar-head {
+    font-size: 12px;
+    color: #6b7280;
+    text-align: center;
+}
+
+.calendar-day {
+    width: 46px; /* match the grid column size */
+    height: 46px;
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #f6f6f6;
+    cursor: pointer;
+}
+
+    .calendar-day.blank {
+        opacity: 0;
+        cursor: default;
+    }
+
+    .calendar-day.today {
+        outline: 2px solid rgba(99,102,241,0.35);
+    }
+
+    .calendar-day.selected {
+        background: #ffffff;
+        border-color: #0b0b0c;
+    }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.chart-placeholder {
+    height: 220px;
+    border-radius: 14px;
+    border: 1px dashed #e5e7eb;
+    background: #f6f6f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+}
+
+.page-title {
+    padding: 8px 2px;
+}
+
+/* -----------------------------
+   DARK THEME
+   We applied theme-dark on .app-shell
+------------------------------ */
+.app-shell.theme-dark {
+    background: #0b0b0c;
+    color: #f3f4f6;
+    min-height: 100vh;
+}
+
+    .app-shell.theme-dark .muted {
+        color: #a1a1aa;
+    }
+
+    .app-shell.theme-dark .card,
+    .app-shell.theme-dark .topbar {
+        background: #121212;
+        border-color: #27272a;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+
+    .app-shell.theme-dark .topbar-search,
+    .app-shell.theme-dark .input,
+    .app-shell.theme-dark .btn-light,
+    .app-shell.theme-dark .calendar-day,
+    .app-shell.theme-dark .preview-box,
+    .app-shell.theme-dark .empty-box,
+    .app-shell.theme-dark .secondary-box,
+    .app-shell.theme-dark .chip {
+        background: #0b0b0c;
+        border-color: #27272a;
+        color: #f3f4f6;
+    }
+
+    .app-shell.theme-dark .search-input {
+        color: #f3f4f6;
+    }
+
+    .app-shell.theme-dark .chip-check {
+        background: #121212;
+        border-color: #27272a;
+    }
+
+    .app-shell.theme-dark .greeting-illustration {
+        background: #121212;
+        border-color: #27272a;
+    }
+    /* Dark mode fix: icon buttons (calendar arrows, topbar icon buttons) */
+    .app-shell.theme-dark .icon-btn {
+        background: #0b0b0c;
+        border-color: #27272a;
+        color: #f3f4f6;
+    }
+
+    /* Dark mode fix: CreatedAt / UpdatedAt bar */
+    .app-shell.theme-dark .timestamps {
+        background: #0b0b0c;
+        border-color: #27272a;
+        color: #f3f4f6;
+    }
+
+    /* Dark mode fix: selected calendar day was forced to white */
+    .app-shell.theme-dark .calendar-day.selected {
+        background: #121212;
+        border-color: #f3f4f6;
+    }
+
+    /* Optional: headings slightly brighter in dark */
+    .app-shell.theme-dark .calendar-head {
+        color: #a1a1aa;
+    }
+
+    /* Dark mode fix: date picker calendar icon (make the icon white) */
+    .app-shell.theme-dark input[type="date"] {
+        /* This tells the browser to use dark UI for date inputs */
+        color-scheme: dark;
+    }
+
+        .app-shell.theme-dark input[type="date"]::-webkit-calendar-picker-indicator {
+            /* This inverts the default black icon and boosts brightness so it looks white */
+            filter: invert(1) brightness(2);
+            opacity: 1;
+        }
+
+    .app-shell.theme-dark .topbar-search,
+    .app-shell.theme-dark .input {
+        background: #0b0b0c;
+        border-color: #27272a;
+        color: #f3f4f6;
+    }
+/* StatCard: placing the icon on the right side of the number */
+.stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.stat-icon {
+    font-size: 34px;
+    line-height: 1;
+}
