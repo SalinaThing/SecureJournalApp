@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
-using SecureJournalApp.Services; // <-- AuthService namespace
+using SecureJournal.Data;
+using SecureJournal.Data.Services;
 
 namespace SecureJournalApp
 {
@@ -20,15 +21,15 @@ namespace SecureJournalApp
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddMudServices();
 
-            // AuthService
-            builder.Services.AddSingleton<JournalService>();
-            builder.Services.AddSingleton<AuthService>();
-
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();
 #endif
+            // Database + services
+            builder.Services.AddSingleton<DbService>();            
+            builder.Services.AddSingleton<JournalService>();
+            builder.Services.AddSingleton<AuthService>();
 
             return builder.Build();
         }
