@@ -1,0 +1,161 @@
+﻿@page "/streak"
+@inject JournalEntryService Entries
+
+<div class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        @* Hero Header *@
+        <div class="relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-500 rounded-2xl text-white p-8 md:p-12 shadow-lg">
+            <div class="relative z-10">
+                <h1 class="text-4xl md:text-5xl font-bold mb-2">Your Streak</h1>
+                <p class="text-green-100 text-lg">Keep the momentum going! Every entry counts.</p>
+            </div>
+            <div class="absolute -right-10 -bottom-10 opacity-10">
+                <span class="material-icons" style="font-size: 200px;">local_fire_department</span>
+            </div>
+        </div>
+
+        @* Main Stats *@
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            @* Current Streak *@
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm hover:shadow-md transition">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                        <span class="material-icons text-3xl text-green-600">local_fire_department</span>
+                    </div>
+                    <div>
+                        <p class="text-neutral-600 dark:text-neutral-400 text-sm font-medium">Current Streak</p>
+                        <p class="text-4xl font-bold text-neutral-900 dark:text-white">@current</p>
+                    </div>
+                </div>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">consecutive days</p>
+            </div>
+
+            @* Longest Streak *@
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm hover:shadow-md transition">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-14 h-14 rounded-xl bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+                        <span class="material-icons text-3xl text-yellow-600">emoji_events</span>
+                    </div>
+                    <div>
+                        <p class="text-neutral-600 dark:text-neutral-400 text-sm font-medium">Longest Streak</p>
+                        <p class="text-4xl font-bold text-neutral-900 dark:text-white">@longest</p>
+                    </div>
+                </div>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">all-time record</p>
+            </div>
+
+            @* Missed Days *@
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm hover:shadow-md transition">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-14 h-14 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                        <span class="material-icons text-3xl text-blue-600">calendar_today</span>
+                    </div>
+                    <div>
+                        <p class="text-neutral-600 dark:text-neutral-400 text-sm font-medium">Days Without Entry</p>
+                        <p class="text-4xl font-bold text-neutral-900 dark:text-white">@missed</p>
+                    </div>
+                </div>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">since registration</p>
+            </div>
+        </div>
+
+        @* Motivation Section *@
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-200 dark:border-green-700 p-8">
+            <div class="flex items-start gap-4">
+                <span class="material-icons text-green-600 text-3xl flex-shrink-0">check_circle</span>
+                <div>
+                    <h3 class="text-lg font-bold text-neutral-900 dark:text-white mb-2">Keep Going! 💪</h3>
+                    <p class="text-neutral-700 dark:text-neutral-300">
+                        @if (int.TryParse(current, out int streakDays) && streakDays > 0)
+                        {
+                            <span>You've built a @current-day streak! The best streak is the one you keep going. Write an entry today to maintain your momentum.</span>
+                        }
+                        else
+                        {
+                            <span>Start your streak today by writing your first entry. Every great achievement begins with a single step.</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        @* Tips Section *@
+        <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm">
+            <h3 class="text-2xl font-bold text-neutral-900 dark:text-white mb-6">Tips for Keeping Your Streak</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                        <span class="material-icons text-orange-600">edit</span>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-neutral-900 dark:text-white mb-1">Write Regularly</h4>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Set a consistent time each day to journal. Morning or evening - find what works for you.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                        <span class="material-icons text-blue-600">schedule</span>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-neutral-900 dark:text-white mb-1">Create Reminders</h4>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Set phone reminders to help you remember to write every day.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                        <span class="material-icons text-purple-600">lightbulb</span>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-neutral-900 dark:text-white mb-1">Be Authentic</h4>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Write what's on your mind. There are no rules - just let your thoughts flow.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                        <span class="material-icons text-green-600">celebration</span>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-neutral-900 dark:text-white mb-1">Celebrate Milestones</h4>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Celebrate when you reach 7, 30, 100+ days. You're building a great habit!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string current = "0";
+    private string longest = "0";
+    private string missed = "0";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entries.DataChanged += Refresh;
+        await LoadAsync();
+    }
+
+    private async void Refresh()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAsync()
+    {
+        var (c, l, m) = await Entries.GetStreakStatsAsync();
+        current = c.ToString();
+        longest = l.ToString();
+        missed = m.ToString();
+    }
+
+    public void Dispose()
+    {
+        Entries.DataChanged -= Refresh;
+    }
+}

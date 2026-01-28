@@ -1,0 +1,217 @@
+@page "/pin-setup"
+@using SecureJournal.Data.Services
+@inject AuthService Auth
+@inject PinLockService PinLock
+@inject NavigationManager Nav
+@implements IDisposable
+
+<div class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        @if (!Auth.IsPinSetup)
+        {
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-8">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900 mb-4">
+                        <span class="material-icons text-2xl text-green-600 dark:text-green-400">security</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">Set Your PIN</h1>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">Create a 4-digit PIN to secure your journal</p>
+                </div>
+
+                @* PIN Display *@
+                <div class="mt-8 flex justify-center gap-3 mb-8">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        var filled = i < _pin.Length;
+
+                        <div class="h-16 w-14 rounded-xl border-2 border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-700 grid place-items-center">
+                            <div class="h-4 w-4 rounded-full @(filled ? "bg-green-600 dark:bg-green-400" : "bg-neutral-300 dark:bg-neutral-600")"></div>
+                        </div>
+                    }
+                </div>
+
+                @* Error Message *@
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+                    <div class="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm text-center">
+                        @_error
+                    </div>
+                }
+
+                @* Keypad *@
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    @foreach (var d in _digits)
+                    {
+                        <button disabled="@_isBusy"
+                                @onclick="@(() => AddDigit(d))"
+                                class="h-14 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white font-semibold text-lg hover:bg-green-50 dark:hover:bg-green-900/20 active:scale-[0.98] disabled:opacity-60 transition">
+                            @d
+                        </button>
+                    }
+
+                    <button disabled="@_isBusy"
+                            @onclick="Clear"
+                            class="h-14 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-medium hover:bg-red-50 dark:hover:bg-neutral-600 active:scale-[0.98] disabled:opacity-60 transition">
+                        Clear
+                    </button>
+
+                    <button disabled="@_isBusy"
+                            @onclick="@(() => AddDigit("0"))"
+                            class="h-14 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white font-semibold text-lg hover:bg-green-50 dark:hover:bg-green-900/20 active:scale-[0.98] disabled:opacity-60 transition">
+                        0
+                    </button>
+
+                    <button disabled="@_isBusy"
+                            @onclick="Backspace"
+                            class="h-14 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-medium hover:bg-orange-50 dark:hover:bg-neutral-600 active:scale-[0.98] disabled:opacity-60 transition">
+                        <span class="material-icons text-lg">backspace</span>
+                    </button>
+                </div>
+
+                @* Status Message *@
+                @if (_isBusy)
+                {
+                    <div class="text-center text-sm text-neutral-500 dark:text-neutral-400">
+                        Setting up your PIN...
+                    </div>
+                }
+                else if (_pinConfirmed)
+                {
+                    <div class="text-center text-sm text-green-600 dark:text-green-400 font-medium">
+                        PIN saved successfully! Entering dashboard...
+                    </div>
+                }
+
+                <div class="mt-6 text-center text-xs text-neutral-500 dark:text-neutral-400">
+                    You can skip this and use the PIN later
+                </div>
+
+                @* Skip Button *@
+                <button @onclick="Skip"
+                        disabled="@_isBusy"
+                        class="w-full mt-4 py-2 px-4 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 disabled:opacity-60 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg transition">
+                    Skip for Now
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900 mb-4">
+                    <span class="material-icons text-2xl text-green-600 dark:text-green-400">check_circle</span>
+                </div>
+                <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">PIN Set!</h1>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">Redirecting to dashboard...</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _pin = "";
+    private string _error = "";
+    private bool _isBusy = false;
+    private bool _pinConfirmed = false;
+
+    private static readonly string[] _digits = new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+
+    protected override void OnInitialized()
+    {
+        // Redirect if not authenticated
+        if (string.IsNullOrWhiteSpace(Auth.CurrentUser))
+        {
+            Nav.NavigateTo("/home");
+            return;
+        }
+
+        // If PIN already setup, redirect to dashboard
+        if (Auth.IsPinSetup)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        // Set current user in PinLock service
+        PinLock.CurrentUser = Auth.CurrentUser;
+    }
+
+    private void AddDigit(string d)
+    {
+        if (_isBusy)
+            return;
+
+        if (_pin.Length >= 4)
+            return;
+
+        _pin += d;
+        _error = "";
+
+        if (_pin.Length == 4)
+        {
+            _ = ConfirmPin();
+        }
+    }
+
+    private void Backspace()
+    {
+        if (_isBusy)
+            return;
+
+        if (_pin.Length == 0)
+            return;
+
+        _pin = _pin.Substring(0, _pin.Length - 1);
+        _error = "";
+    }
+
+    private void Clear()
+    {
+        if (_isBusy)
+            return;
+
+        _pin = "";
+        _error = "";
+    }
+
+    private async Task ConfirmPin()
+    {
+        _isBusy = true;
+        _error = "";
+
+        // Set the PIN for current user
+        var ok = PinLock.SetNewPin(_pin);
+        if (!ok)
+        {
+            _error = "Failed to set PIN. Try again.";
+            _isBusy = false;
+            _pin = "";
+            await Task.Delay(500);
+            StateHasChanged();
+            return;
+        }
+
+        // Mark PIN setup as complete
+        Auth.SetPinSetupComplete();
+        _pinConfirmed = true;
+
+        await Task.Delay(1000);
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+
+    private async Task Skip()
+    {
+        _isBusy = true;
+
+        // Mark PIN setup as complete even without setting a PIN
+        Auth.SetPinSetupComplete();
+        _pinConfirmed = true;
+
+        await Task.Delay(500);
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+}

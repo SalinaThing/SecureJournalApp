@@ -1,0 +1,74 @@
+@page "/tags"
+@inject JournalEntryService Entries
+
+<div class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        
+        @* Header *@
+        <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="material-icons text-green-600 text-3xl">sell</span>
+                <h1 class="text-4xl font-bold text-neutral-900 dark:text-white">Tags</h1>
+            </div>
+            <p class="text-neutral-600 dark:text-neutral-400">Explore all tags used in your entries</p>
+        </div>
+
+        @* Tags Grid *@
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @if (tagCounts.Count == 0)
+            {
+                <div class="col-span-full bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-12 text-center shadow-sm">
+                    <span class="material-icons text-4xl text-neutral-400 mb-4 block">sell</span>
+                    <p class="text-neutral-600 dark:text-neutral-400 text-lg">No tags yet</p>
+                    <p class="text-neutral-500 dark:text-neutral-500 text-sm mt-2">Create entries and add tags to see them here</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var kv in tagCounts.OrderByDescending(x => x.Value))
+                {
+                    <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 hover:shadow-md transition">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 flex-1">
+                                <span class="material-icons text-green-600">label</span>
+                                <div>
+                                    <h3 class="font-bold text-neutral-900 dark:text-white text-lg">@kv.Key</h3>
+                                    <p class="text-xs text-neutral-500 dark:text-neutral-400">used in entries</p>
+                                </div>
+                            </div>
+                            <div class="px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full font-bold text-lg text-center min-w-[60px]">
+                                @kv.Value
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private Dictionary<string, int> tagCounts = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entries.DataChanged += Refresh;
+        await LoadAsync();
+    }
+
+    private async void Refresh()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAsync()
+    {
+        tagCounts = await Entries.GetTagCountsAsync();
+    }
+
+    public void Dispose()
+    {
+        Entries.DataChanged -= Refresh;
+    }
+}

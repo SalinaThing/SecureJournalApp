@@ -1,0 +1,253 @@
+@page "/home"
+@using SecureJournal.Data.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+<div class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white dark:bg-neutral-800 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-8">
+            @* Logo/Title *@
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900 mb-4">
+                    <span class="material-icons text-2xl text-green-600 dark:text-green-400">lock_open</span>
+                </div>
+                <h1 class="text-3xl font-bold text-neutral-900 dark:text-white">SecureJournal</h1>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">Your private journal, secured</p>
+            </div>
+
+            @* Tab Buttons *@
+            <div class="flex gap-2 mb-6 border-b border-neutral-200 dark:border-neutral-700">
+                <button @onclick="@(() => SetTab("login"))"
+                        class="flex-1 py-3 px-4 font-medium text-sm border-b-2 transition @(_currentTab == "login" ? "border-green-600 text-green-600 dark:text-green-400" : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200")">
+                    Login
+                </button>
+                <button @onclick="@(() => SetTab("register"))"
+                        class="flex-1 py-3 px-4 font-medium text-sm border-b-2 transition @(_currentTab == "register" ? "border-green-600 text-green-600 dark:text-green-400" : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200")">
+                    Register
+                </button>
+            </div>
+
+            @* Tab Content *@
+            @if (_currentTab == "login")
+            {
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Username</label>
+                        <input type="text"
+                               @bind="_loginUsername"
+                               placeholder="Enter your username"
+                               class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Password</label>
+                        <input type="password"
+                               @bind="_loginPassword"
+                               placeholder="Enter your password"
+                               class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_loginError))
+                    {
+                        <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+                            @_loginError
+                        </div>
+                    }
+
+                    <button @onclick="HandleLogin"
+                            disabled="@_isLoading"
+                            class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium rounded-lg transition">
+                        @if (_isLoading)
+                        {
+                            <span>Logging in...</span>
+                        }
+                        else
+                        {
+                            <span>Login</span>
+                        }
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Username</label>
+                        <input type="text"
+                               @bind="_regUsername"
+                               placeholder="Choose a username"
+                               class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Password</label>
+                        <input type="password"
+                               @bind="_regPassword"
+                               placeholder="Create a password (min 4 chars)"
+                               class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Confirm Password</label>
+                        <input type="password"
+                               @bind="_regPasswordConfirm"
+                               placeholder="Confirm your password"
+                               class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_regError))
+                    {
+                        <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+                            @_regError
+                        </div>
+                    }
+
+                    <button @onclick="HandleRegister"
+                            disabled="@_isLoading"
+                            class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium rounded-lg transition">
+                        @if (_isLoading)
+                        {
+                            <span>Creating account...</span>
+                        }
+                        else
+                        {
+                            <span>Create Account</span>
+                        }
+                    </button>
+                </div>
+            }
+
+            <div class="mt-6 text-center text-xs text-neutral-500 dark:text-neutral-400">
+                Secure. Private. Yours.
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _currentTab = "login";
+    private bool _isLoading = false;
+
+    // Login fields
+    private string _loginUsername = "";
+    private string _loginPassword = "";
+    private string _loginError = "";
+
+    // Register fields
+    private string _regUsername = "";
+    private string _regPassword = "";
+    private string _regPasswordConfirm = "";
+    private string _regError = "";
+
+    protected override void OnInitialized()
+    {
+        Auth.AuthStateChanged += OnAuthStateChanged;
+
+        // If already authenticated, redirect to pin setup or dashboard
+        if (!string.IsNullOrWhiteSpace(Auth.CurrentUser))
+        {
+            if (Auth.IsPinSetup)
+                Nav.NavigateTo("/");
+            else
+                Nav.NavigateTo("/pin-setup");
+        }
+    }
+
+    private void SetTab(string tab)
+    {
+        _currentTab = tab;
+        _loginError = "";
+        _regError = "";
+    }
+
+    private async Task HandleLogin()
+    {
+        _loginError = "";
+
+        if (string.IsNullOrWhiteSpace(_loginUsername))
+        {
+            _loginError = "Please enter a username";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_loginPassword))
+        {
+            _loginError = "Please enter your password";
+            return;
+        }
+
+        _isLoading = true;
+
+        var success = Auth.Login(_loginUsername, _loginPassword);
+        if (!success)
+        {
+            _loginError = "Invalid username or password";
+            _isLoading = false;
+            return;
+        }
+
+        // Navigate to PIN setup
+        await Task.Delay(300);
+        Nav.NavigateTo("/pin-setup", forceLoad: true);
+    }
+
+    private async Task HandleRegister()
+    {
+        _regError = "";
+
+        if (string.IsNullOrWhiteSpace(_regUsername))
+        {
+            _regError = "Please choose a username";
+            return;
+        }
+
+        if (_regUsername.Length < 3)
+        {
+            _regError = "Username must be at least 3 characters";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_regPassword))
+        {
+            _regError = "Please create a password";
+            return;
+        }
+
+        if (_regPassword.Length < 4)
+        {
+            _regError = "Password must be at least 4 characters";
+            return;
+        }
+
+        if (_regPassword != _regPasswordConfirm)
+        {
+            _regError = "Passwords don't match";
+            return;
+        }
+
+        _isLoading = true;
+
+        var success = Auth.Register(_regUsername, _regPassword);
+        if (!success)
+        {
+            _regError = "Username already exists or invalid input";
+            _isLoading = false;
+            return;
+        }
+
+        // Navigate to PIN setup
+        await Task.Delay(300);
+        Nav.NavigateTo("/pin-setup", forceLoad: true);
+    }
+
+    private void OnAuthStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Auth.AuthStateChanged -= OnAuthStateChanged;
+    }
+}

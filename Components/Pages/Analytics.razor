@@ -1,0 +1,188 @@
+@page "/analytics"
+@inject JournalEntryService Entries
+
+<div class="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        @* Header *@
+        <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm">
+            <h1 class="text-4xl font-bold text-neutral-900 dark:text-white mb-2">Analytics</h1>
+            <p class="text-neutral-600 dark:text-neutral-400">Insights into your journaling patterns and habits</p>
+        </div>
+
+        @* Key Stats *@
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                        <span class="material-icons text-orange-600">article</span>
+                    </div>
+                    <p class="text-neutral-600 dark:text-neutral-400 text-sm">Total Entries</p>
+                </div>
+                <p class="text-4xl font-bold text-neutral-900 dark:text-white">@totalEntries</p>
+            </div>
+
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                        <span class="material-icons text-blue-600">text_fields</span>
+                    </div>
+                    <p class="text-neutral-600 dark:text-neutral-400 text-sm">Total Words</p>
+                </div>
+                <p class="text-4xl font-bold text-neutral-900 dark:text-white">@totalWords</p>
+            </div>
+
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                        <span class="material-icons text-orange-600">mood</span>
+                    </div>
+                    <p class="text-neutral-600 dark:text-neutral-400 text-sm">Top Mood</p>
+                </div>
+                <p class="text-4xl font-bold text-neutral-900 dark:text-white">@topMood</p>
+            </div>
+        </div>
+
+        @* Charts Grid *@
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            @* Mood Distribution *@
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+                <div class="flex items-center gap-2 mb-6">
+                    <span class="material-icons text-orange-600">sentiment_satisfied</span>
+                    <h3 class="text-lg font-bold text-neutral-900 dark:text-white">Mood Distribution</h3>
+                </div>
+
+                @if (moodCounts.Count == 0)
+                {
+                    <div class="text-center py-8">
+                        <p class="text-neutral-500 dark:text-neutral-400">No mood data yet</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-4">
+                        @foreach (var kv in moodCounts)
+                        {
+                            var percentage = moodCounts.Count > 0 ? (kv.Value * 100) / moodCounts.Values.Sum() : 0;
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-medium text-neutral-700 dark:text-neutral-300">@kv.Key</span>
+                                    <span class="text-sm text-neutral-500 dark:text-neutral-400">@kv.Value entries</span>
+                                </div>
+                                <div class="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+                                    <div class="bg-gradient-to-r from-orange-400 to-orange-600 h-2 rounded-full" style="width: @percentage%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Top Tags *@
+            <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+                <div class="flex items-center gap-2 mb-6">
+                    <span class="material-icons text-pink-600">sell</span>
+                    <h3 class="text-lg font-bold text-neutral-900 dark:text-white">Top Tags</h3>
+                </div>
+
+                @if (tagCounts.Count == 0)
+                {
+                    <div class="text-center py-8">
+                        <p class="text-neutral-500 dark:text-neutral-400">No tags yet</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-3">
+                        @foreach (var kv in tagCounts.Take(10))
+                        {
+                            <div class="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-700/50 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons text-pink-600 text-sm">label</span>
+                                    <span class="font-medium text-neutral-900 dark:text-white">@kv.Key</span>
+                                </div>
+                                <span class="px-3 py-1 bg-pink-100 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300 rounded-full text-sm font-semibold">@kv.Value</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* Category Distribution *@
+        <div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+            <div class="flex items-center gap-2 mb-6">
+                <span class="material-icons text-cyan-600">category</span>
+                <h3 class="text-lg font-bold text-neutral-900 dark:text-white">Categories</h3>
+            </div>
+
+            @if (categoryCounts.Count == 0)
+            {
+                <div class="text-center py-8">
+                    <p class="text-neutral-500 dark:text-neutral-400">No categories yet</p>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var kv in categoryCounts)
+                    {
+                        <div class="p-4 bg-neutral-50 dark:bg-neutral-700/50 rounded-lg border border-neutral-200 dark:border-neutral-600 hover:border-cyan-300 dark:hover:border-cyan-700 transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium text-neutral-900 dark:text-white">@kv.Key</span>
+                                <span class="text-2xl font-bold text-cyan-600">@kv.Value</span>
+                            </div>
+                            <p class="text-xs text-neutral-500 dark:text-neutral-400">entries</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string totalEntries = "0";
+    private string totalWords = "0";
+    private string topMood = "-";
+
+    private Dictionary<string, int> moodCounts = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, int> tagCounts = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, int> categoryCounts = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entries.DataChanged += Refresh;
+        await LoadAsync();
+    }
+
+    private async void Refresh()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAsync()
+    {
+        var all = await Entries.GetAllAsync();
+
+        totalEntries = all.Count.ToString();
+        totalWords = all.Sum(x => x.WordCount).ToString();
+
+        moodCounts = await Entries.GetMoodCountsAsync();
+        tagCounts = await Entries.GetTagCountsAsync();
+        
+        // Calculate category counts
+        categoryCounts = all
+            .GroupBy(x => x.Category ?? "Uncategorized")
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+        topMood = moodCounts.Count == 0 ? "-" : moodCounts.First().Key;
+    }
+
+    public void Dispose()
+    {
+        Entries.DataChanged -= Refresh;
+    }
+}
