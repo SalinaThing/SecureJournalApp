@@ -1,0 +1,229 @@
+@using Markdig
+@inject JournalEntryService Entries
+
+<div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm">
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <span class="material-icons text-green-600">edit</span>
+                <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">Today's Entry</h2>
+            </div>
+            <p class="text-neutral-600 dark:text-neutral-400 text-sm">@statusText</p>
+        </div>
+
+        <div class="px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold uppercase tracking-wide">One entry per day</div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">Entry Date</label>
+            <input class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-neutral-700 text-neutral-900 dark:text-white font-medium cursor-not-allowed" 
+                   type="date" 
+                   value="@TodayDateValue" 
+                   disabled />
+        </div>
+
+        <div>
+            <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">Category</label>
+            <select class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500" 
+                    @bind="Category">
+                @foreach (var c in MoodTagGroup.EntryCategories)
+                {
+                    <option value="@c">@c</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-6">
+        <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">Title</label>
+        <input class="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" 
+               placeholder="Give your entry a title..." 
+               @bind="Title" />
+    </div>
+
+    <div class="mb-6">
+        <div class="flex justify-between items-center mb-3">
+            <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Content (Markdown)</label>
+            <button class="px-3 py-1 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 text-xs font-medium rounded-lg transition" 
+                    @onclick="TogglePreview">
+                @(ShowPreview ? "Hide Preview" : "Show Preview")
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <textarea class="w-full px-4 py-3 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[300px] font-mono text-sm" 
+                      placeholder="Write in Markdown..." 
+                      @bind="Content"></textarea>
+
+            <div class="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 bg-neutral-50 dark:bg-neutral-700/50 overflow-auto min-h-[300px]">
+                @if (!ShowPreview)
+                {
+                    <div class="text-sm text-neutral-600 dark:text-neutral-400">Preview is off. Click Show Preview.</div>
+                }
+                else
+                {
+                    <div class="prose dark:prose-invert prose-sm max-w-none">
+                        @((MarkupString)PreviewHtml)
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-6 space-y-6">
+        <MoodPicker @bind-PrimaryMood="PrimaryMood" @bind-SecondaryMoods="SecondaryMoods" />
+    </div>
+
+    <div class="mb-6 space-y-6">
+        <TagPicker @bind-Tags="Tags" />
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-6 p-4 bg-neutral-50 dark:bg-neutral-700/50 rounded-lg">
+        <div>
+            <div class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Created</div>
+            <div class="text-sm font-medium text-neutral-900 dark:text-white">@CreatedAtText</div>
+        </div>
+        <div>
+            <div class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Updated</div>
+            <div class="text-sm font-medium text-neutral-900 dark:text-white">@UpdatedAtText</div>
+        </div>
+    </div>
+
+    <div class="mt-4 flex gap-3">
+        <button class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition" @onclick="SaveToday">@(hasTodayEntry ? "Update" : "Create")</button>
+        <button class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition disabled:opacity-50" @onclick="DeleteToday" disabled="@(!hasTodayEntry)">Delete</button>
+    </div>
+</div>
+
+@code {
+    private string Title = "";
+    private string Content = "";
+    private bool ShowPreview = true;
+
+    private string Category = MoodTagGroup.EntryCategories[0];
+
+    private string PrimaryMood = "";
+    private List<string> SecondaryMoods = new();
+    private List<string> Tags = new();
+
+    private bool hasTodayEntry;
+    private int todayId;
+
+    private DateTime createdAt;
+    private DateTime updatedAt;
+
+    private string statusText = "Loading...";
+
+    private string TodayDateValue => DateTime.Now.ToString("yyyy-MM-dd");
+    private string CreatedAtText => createdAt == default ? "-" : createdAt.ToString("yyyy-MM-dd HH:mm");
+    private string UpdatedAtText => updatedAt == default ? "-" : updatedAt.ToString("yyyy-MM-dd HH:mm");
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entries.DataChanged += Refresh;
+
+        await LoadTodayAsync();
+    }
+
+    private async void Refresh()
+    {
+        await LoadTodayAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadTodayAsync()
+    {
+        statusText = "Loading...";
+        var today = DateTime.Now.Date;
+
+        var e = await Entries.GetByDateAsync(today);
+        if (e == null)
+        {
+            hasTodayEntry = false;
+            todayId = 0;
+
+            Title = "";
+            Content = "";
+            PrimaryMood = "";
+            SecondaryMoods = new();
+            Tags = new();
+
+            createdAt = default;
+            updatedAt = default;
+
+            statusText = "No entry for today yet.";
+            return;
+        }
+
+        hasTodayEntry = true;
+        todayId = e.Id;
+
+        Category = e.Category ?? MoodTagGroup.EntryCategories[0];
+        Title = e.Title ?? "";
+        Content = e.Markdown ?? "";
+
+        PrimaryMood = e.PrimaryMood ?? "";
+        SecondaryMoods = new List<string>();
+        if (!string.IsNullOrWhiteSpace(e.SecondaryMood1)) SecondaryMoods.Add(e.SecondaryMood1);
+        if (!string.IsNullOrWhiteSpace(e.SecondaryMood2)) SecondaryMoods.Add(e.SecondaryMood2);
+
+        Tags = (e.TagsCsv ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        createdAt = e.CreatedAt;
+        updatedAt = e.UpdatedAt;
+
+        statusText = "Loaded todays entry.";
+    }
+
+    private void TogglePreview() => ShowPreview = !ShowPreview;
+
+    private string PreviewHtml
+    {
+        get
+        {
+            var pipeline = new MarkdownPipelineBuilder()
+                .DisableHtml()
+                .UseAdvancedExtensions()
+                .Build();
+
+            return Markdown.ToHtml(Content ?? "", pipeline);
+        }
+    }
+
+    private async Task SaveToday()
+    {
+        statusText = "Saving...";
+
+        await Entries.UpsertForDateAsync(
+            DateTime.Now.Date,
+            Category,
+            Title,
+            Content,
+            PrimaryMood,
+            SecondaryMoods,
+            Tags
+        );
+
+        statusText = "Saved.";
+    }
+
+    private async Task DeleteToday()
+    {
+        if (!hasTodayEntry || todayId <= 0) return;
+
+        statusText = "Deleting...";
+        await Entries.DeleteAsync(todayId);
+        statusText = "Deleted.";
+    }
+
+    public void Dispose()
+    {
+        Entries.DataChanged -= Refresh;
+    }
+}

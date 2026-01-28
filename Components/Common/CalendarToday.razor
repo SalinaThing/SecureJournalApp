@@ -1,0 +1,186 @@
+@using System.Globalization
+
+<div class="@(Compact ? "calendar" : "card p-5 calendar")">
+    <div class="flex-between">
+        <div class="font-semibold">@monthLabel</div>
+
+        <div class="row">
+            <button class="icon-btn" @onclick="PrevMonth" title="Previous month">
+                <span class="material-icons">chevron_left</span>
+            </button>
+            <button class="icon-btn" @onclick="NextMonth" title="Next month">
+                <span class="material-icons">chevron_right</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="calendar-grid mt-4 @(Compact ? "compact" : "")">
+        @foreach (var d in dayLabels)
+        {
+            <div class="calendar-head muted">@d</div>
+        }
+
+        @foreach (var cell in cells)
+        {
+            if (cell == null)
+            {
+                <div class="calendar-cell empty"></div>
+            }
+            else
+            {
+                var key = cell.Value.ToString("yyyy-MM-dd");
+                var has = DatesWithEntries != null && DatesWithEntries.Contains(key);
+
+                <button class="calendar-cell day @(has ? "has-entry" : "")"
+                        @onclick="() => SelectDate(cell.Value)">
+                    @cell.Value.Day
+                </button>
+            }
+        }
+    </div>
+</div>
+
+<style>
+    .calendar {
+        border-radius: 16px;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        align-items: center;
+        justify-items: center;
+    }
+
+        .calendar-grid.compact {
+            gap: 8px;
+        }
+
+    .calendar-head {
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.75;
+        padding-bottom: 2px;
+    }
+
+    .calendar-cell {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.06);
+        background: rgba(0,0,0,0.02);
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+
+        .calendar-cell.empty {
+            border: 0;
+            background: transparent;
+        }
+
+        .calendar-cell.day:hover {
+            transform: translateY(-1px);
+            background: rgba(0,0,0,0.05);
+        }
+
+        .calendar-cell.day:active {
+            transform: scale(0.98);
+        }
+
+        .calendar-cell.has-entry {
+            border-color: rgba(0,0,0,0.18);
+            background: rgba(0,0,0,0.06);
+            font-weight: 700;
+        }
+
+    /* Bigger layout when not Compact */
+    .card.calendar .calendar-cell {
+        width: 42px;
+        height: 42px;
+        font-size: 15px;
+    }
+
+    /* Dark mode support */
+    .app-shell.theme-dark .calendar-cell {
+        border-color: rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.06);
+    }
+
+        .app-shell.theme-dark .calendar-cell.day:hover {
+            background: rgba(255,255,255,0.10);
+        }
+
+        .app-shell.theme-dark .calendar-cell.has-entry {
+            border-color: rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.10);
+        }
+
+    .app-shell.theme-dark .calendar-head {
+        opacity: 0.7;
+    }
+</style>
+
+@code {
+    [Parameter] public bool Compact { get; set; } = false;
+
+    // Pass: date keys for this month that have entries (yyyy-MM-dd)
+    [Parameter] public HashSet<string>? DatesWithEntries { get; set; }
+
+    [Parameter] public EventCallback<DateTime> OnDateClick { get; set; }
+
+    private DateTime current = new(DateTime.Now.Year, DateTime.Now.Month, 1);
+    private string monthLabel = "";
+    private readonly string[] dayLabels = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    private List<DateTime?> cells = new();
+
+    protected override void OnInitialized()
+    {
+        Build();
+    }
+
+    protected override void OnParametersSet()
+    {
+        Build();
+    }
+
+    private void PrevMonth()
+    {
+        current = current.AddMonths(-1);
+        Build();
+    }
+
+    private void NextMonth()
+    {
+        current = current.AddMonths(1);
+        Build();
+    }
+
+    private async Task SelectDate(DateTime d)
+    {
+        if (OnDateClick.HasDelegate)
+            await OnDateClick.InvokeAsync(d);
+    }
+
+    private void Build()
+    {
+        monthLabel = current.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+        cells = new List<DateTime?>();
+
+        var firstDay = current;
+        var daysInMonth = DateTime.DaysInMonth(current.Year, current.Month);
+
+        // make Monday = 0
+        int offset = ((int)firstDay.DayOfWeek + 6) % 7;
+
+        for (int i = 0; i < offset; i++)
+            cells.Add(null);
+
+        for (int d = 1; d <= daysInMonth; d++)
+            cells.Add(new DateTime(current.Year, current.Month, d));
+    }
+}

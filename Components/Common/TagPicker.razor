@@ -1,0 +1,103 @@
+<div class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm">
+    <div class="flex items-center gap-2 mb-2">
+        <span class="material-icons text-green-600">local_offer</span>
+        <h3 class="font-bold text-2xl text-neutral-900 dark:text-white">Tags</h3>
+    </div>
+    <p class="text-neutral-600 dark:text-neutral-400 text-sm mt-1">Choose from prebuilt tags or add custom tags.</p>
+
+    <div class="mt-6">
+        <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-3 uppercase tracking-wider">Add Custom Tag</label>
+
+        <div class="flex gap-2">
+            <input class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500" 
+                   placeholder="Type tag and press Add" 
+                   @bind="customTag" />
+            <button class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition" 
+                    @onclick="AddCustomTag">
+                Add
+            </button>
+        </div>
+
+        <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">Example: Health, Emotional,Reflection...</p>
+    </div>
+
+    <div class="mt-6">
+        <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-3 uppercase tracking-wider">Pre-built Tags</label>
+
+        <div class="flex gap-2">
+            <select class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500" 
+                    @bind="selectedPrebuilt">
+                <option value="">Select a tag...</option>
+                @foreach (var t in MoodTagGroup.PrebuiltTags)
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+
+            <button class="px-6 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg transition" 
+                    @onclick="AddPrebuiltTag">
+                Add
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-6">
+        <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-3 uppercase tracking-wider">Selected Tags</label>
+
+        <div class="flex flex-wrap gap-2">
+            @if (Tags.Count == 0)
+            {
+                <span class="text-sm text-neutral-600 dark:text-neutral-400">No tags selected.</span>
+            }
+            else
+            {
+                @foreach (var t in Tags)
+                {
+                    <button class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/40 transition flex items-center gap-2" 
+                            @onclick="() => RemoveTag(t)" 
+                            title="Remove">
+                        @t 
+                        <span class="material-icons text-sm">close</span>
+                    </button>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<string> Tags { get; set; } = new();
+    [Parameter] public EventCallback<List<string>> TagsChanged { get; set; }
+
+    private string customTag = "";
+    private string selectedPrebuilt = "";
+
+    private async Task AddCustomTag()
+    {
+        var t = (customTag ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(t)) return;
+
+        if (!Tags.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
+            Tags.Add(t);
+
+        customTag = "";
+        await TagsChanged.InvokeAsync(Tags);
+    }
+
+    private async Task AddPrebuiltTag()
+    {
+        if (string.IsNullOrWhiteSpace(selectedPrebuilt)) return;
+
+        if (!Tags.Any(x => string.Equals(x, selectedPrebuilt, StringComparison.OrdinalIgnoreCase)))
+            Tags.Add(selectedPrebuilt);
+
+        selectedPrebuilt = "";
+        await TagsChanged.InvokeAsync(Tags);
+    }
+
+    private async Task RemoveTag(string t)
+    {
+        Tags.Remove(t);
+        await TagsChanged.InvokeAsync(Tags);
+    }
+}
