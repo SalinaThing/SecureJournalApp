@@ -28,7 +28,7 @@ namespace SecureJournalApp
 #endif
             // Database + services
             builder.Services.AddSingleton<DbService>();            
-            builder.Services.AddSingleton<JournalService>();
+            builder.Services.AddSingleton<JournalEntryService>();
             builder.Services.AddSingleton<AuthService>();
             builder.Services.AddSingleton<CalendarService>();
             builder.Services.AddSingleton<PinLockService>();
